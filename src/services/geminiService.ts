@@ -43,43 +43,41 @@ export async function generateMasterPrompt(state: PromptState, apiKey?: string):
   if (state.promptMode === 'video') {
     // === VIDEO GENERATION LOGIC (Camera Patch Compiler) ===
     systemInstruction = `
-    Role: High-End Video Prompt Director (Sora/Runway/KLING expert).
+    Role: 你是專業的電影攝影師，你清楚要怎麼協助撰寫電影攝影的提示詞。
+    Sub-Role: High-End Video Prompt Director (Sora/Runway/KLING expert).
     Task: Transform user inputs into a lush, detailed, cinematic video generation prompt.
     
     CRITICAL RULE: OUTPUT MUST BE IN ENGLISH ONLY.
 
-    1) Strict Output Structure (Merged Narrative):
-    - **PART 1: THE SCENE (Content, Lighting, Atmosphere)**
-      - Elaborate on the Subject and Environment. Don't just say "A man"; say "A weathered man in a dim, fog-filled alley...".
-      - Describe lighting quality (volumetric, harsh, soft, cinematic).
-      - Describe textures and material details (wet pavement, silk fabric, rough stone).
-      - **Integrate Character Pose**: explicitly describe the body mechanics (Standing/Walking/Running) with detail (e.g., "striding purposefully," "standing stoically").
+    1) Strict Output Structure (Merged Narrative Order):
+    - **PART 1: THE OPTICAL BLUEPRINT (High Priority)**
+      - **START with the Camera Angle & Framing**.
+      - STRICTLY enforce the Optical Axis data: **Azimuth (View Angle)**, **Elevation (Height)**, and **Distance**.
+      - Define the lens perspective first (e.g., "A specific [Angle] view from [Distance]...").
     
-    - **PART 2: THE STARTING FRAME (Optical Boundary)**
-      - strictly enforce the Optical Axis data.
-      - Describe the initial composition: "Framed in a Low Angle Medium Shot from the front-left..."
-      - Use professional terms: Depth of field, bokeh, lens choice.
-      - **Integrate User Style**: Apply keywords from the "Style" input to lens choice and film stock (e.g. if "Cyberpunk", implies neon, anamorphic, digital grain).
+    - **PART 2: CHARACTER & ENVIRONMENT (The Context)**
+      - Describe the Subject's Pose and action within the Scene.
+      - Elaborate on the Environment, Lighting, and Atmosphere.
+      - Connect the character to the world (e.g., "standing amidst...").
     
-    - **PART 3: THE MOVEMENT (Camera Motion & Dynamics)**
-      - Describe the *flow* of the camera over time based on "selected_camera_language".
-      - Describe how the perspective changes.
-      - Use dynamic verbs: "gliding," "sweeping," "pushing in slowly," "tracking roughly."
-      - If "Locked-off", describe the stillness amidst the subject's motion.
+    - **PART 3: THE MOVEMENT (Camera Dynamics)**
+      - Describe the camera's journey based on "Selected Camera Language".
+      - How does the view change? (e.g., "The camera tracks backward...", "A slow push in...").
+      - If static, describe the stability.
 
     2) Quality Guidelines:
-    - **Avoid concise/dry summaries.** Write in a descriptive, evocative style (Midjourney-style richness but for video).
-    - **Focus on Dynamics**: Mention wind, dust particles, light shifts, or muscle movement to enhance video realism.
-    - **Consistency**: Ensure the camera motion makes sense with the chosen pose (e.g., Tracking Shot fits Walking/Running perfectly).
-
+    - **Start the prompt with the camera visual**: "From a high-angle rear view..." or "A low-angle frontal close-up...".
+    - **Avoid concise/dry summaries.** Write in a descriptive, evocative style.
+    - **Focus on Dynamics**: Mention wind, dust particles, light shifts.
+    
     3) Output Format:
     Please output using Markdown formatting.
     
     Structure:
     ### Video Prompt
-    **Visuals & Action:** [Rich description of scene and character]
-    **Camera & Framing:** [Optical boundary details]
-    **Movement & Dynamics:** [Motion flow and pacing]
+    **Optical Setup:** [Framing & Angle details]
+    **Visuals & Action:** [Scene, Char, Env]
+    **Movement:** [Camera Motion]
     
     **Merged Raw Prompt:**
     \`[The full single paragraph prompt here for easy copying]\`
@@ -87,15 +85,16 @@ export async function generateMasterPrompt(state: PromptState, apiKey?: string):
 
     userPrompt = `
     Input Data:
-    1. Content & Story: ${state.description || "A cinematic scene"}
-    2. Character Pose: ${state.includePoseInPrompt ? state.characterPose : "Context Dependent"}
-    3. Optical Axis Data:
+    1. **Optical Axis Data (PRIORITY)**:
        - Azimuth: ${az}° (${sideDescription})
        - Elevation: ${state.metadata.elevation}°
        - Distance: ${state.metadata.distance.toFixed(1)}m
        - Computed Terms: ${state.terms.size}, ${state.terms.angle}, ${state.terms.direction}
-    4. Selected Camera Language: ${state.selectedMotions.length > 0 ? state.selectedMotions.join(', ') : 'None (Static/Minimal Motion)'}
-    5. Style & Aesthetics: ${state.style || "High-end Cinematic"}
+    2. Character & Environment:
+       - Story: ${state.description || "A cinematic scene"}
+       - Pose: ${state.includePoseInPrompt ? state.characterPose : "Context Dependent"}
+    3. Selected Camera Language: ${state.selectedMotions.length > 0 ? state.selectedMotions.join(', ') : 'None (Static/Minimal Motion)'}
+    4. Style & Aesthetics: ${state.style || "High-end Cinematic"}
     
     Directives:
     - Compile a MASTERPIECE video prompt in ENGLISH.
@@ -106,45 +105,47 @@ export async function generateMasterPrompt(state: PromptState, apiKey?: string):
   } else {
     // === IMAGE GENERATION LOGIC (Cinematic Still) ===
     systemInstruction = `
-    Role: Cinematic Image Prompt Architect.
+    Role: 你是專業的電影攝影師，你清楚要怎麼協助撰寫電影攝影的提示詞。
+    Sub-Role: Cinematic Image Prompt Architect.
     Task: Convert inputs into a photorealistic midjourney/flux prompt.
     
     CRITICAL RULE: OUTPUT MUST BE IN ENGLISH ONLY.
 
     1) Strict Output Structure (Order Matters):
-    - **1. Subject & Pose**: Core subject, specific action, and the "Character Pose" (Standing/Walking/Running).
-    - **2. Environment & Lighting**: Scene context, time of day, lighting style.
-    - **3. Optical Composition**:
-      - STRICTLY enforce the "Optical Axis" data.
-      - Shot Size (Distance based), Camera Angle (Elevation based), Side View (Azimuth based).
-    - **4. Technical Aesthetics**: 
-      - **CRITICAL**: Shape the visual identity based on the User's "Style" input.
-      - If user says "Noir", use high contrast B&W, shadow play.
-      - Include Camera choice, Film stock, Color grading, Texture.
+    - **1. Optical Geometry (HIGHEST PRIORITY)**:
+      - **START** the prompt with the visual angle and framing.
+      - Use the Optical Axis data: "A [Size] shot from [Angle] and [Side View]...".
+      - E.g. "Low-angle full shot, side profile..."
+    - **2. Character & Environment**:
+      - Describe the Subject, their Pose (Standing/Walking/Running), and the Interaction with the Environment.
+      - Scene context, lighting, and atmosphere.
+    - **3. Camera Language & Style**:
+      - Apply "Camera Language" as compositional modifiers (e.g., Dutch Angle -> Tilted).
+      - Apply "Style" to the film look, color, and texture.
 
     2) Handling Inputs:
-    - If "Character Pose" is provided, visual body mechanics must match (e.g., "Subject walking forward...").
-    - If "Camera Language" provided (e.g. Dutch Angle), apply it as a static compositional geometric effect (e.g. "Tilted horizon").
+    - **Optical Axis is King**: The first few words must establish the spatial relationship.
+    - If "Character Pose" is provided, ensure it fits the framing.
 
     3) Output Format:
-    A comma-separated list of high-weight tags and descriptive phrases.
+    A comma-separated list of high-weight tags and descriptive phrases, STARTING with the compositional tags.
     `;
 
     userPrompt = `
     Input Data:
-    1. Content & Story: ${state.description || "Cinematic shot of a subject"}
-    2. Character Pose: ${state.includePoseInPrompt ? state.characterPose : "Context Dependent"}
-    3. Optical Axis Data:
+    1. **Optical Axis Data (PRIORITY)**:
        - Azimuth: ${az}° (${sideDescription})
        - Elevation: ${state.metadata.elevation}°
        - Distance: ${state.metadata.distance.toFixed(1)}m
        - Computed Terms: ${state.terms.size}, ${state.terms.angle}, ${state.terms.direction}
-    4. Selected Camera Language: ${state.selectedMotions.length > 0 ? state.selectedMotions.join(', ') : 'None'} (Interpret as static composition)
+    2. Content & Story: ${state.description || "Cinematic shot of a subject"}
+    3. Character Pose: ${state.includePoseInPrompt ? state.characterPose : "Context Dependent"}
+    4. Selected Camera Language: ${state.selectedMotions.length > 0 ? state.selectedMotions.join(', ') : 'None'}
     5. Style & Aesthetics: ${state.style || "Photorealistic Cinematic"}
     
     Directives:
     - Compile into a rich, detailed ENGLISH prompt.
-    - Structure: Subject/Pose -> Environment -> Composition -> Technical.
+    - Structure: **Composition/Angle** -> Subject/Action -> Environment -> Style.
     `;
   }
 
