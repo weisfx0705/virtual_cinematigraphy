@@ -1,4 +1,4 @@
-# 虛擬電影攝影師 (Virtual Cinematographer)
+# 攝影語言提示詞生成器 
 
 ![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
