@@ -145,8 +145,7 @@ const App: React.FC = () => {
     alert('提示詞已複製到剪貼簿！');
   };
 
-  const viewfinderHeight = "85vh";
-  const viewfinderWidth = "calc(85vh * 1.777)";
+  // Viewfinder dimensions are now handled via CSS classes for responsiveness
 
   // 將 Markdown 轉換為 HTML 的安全處理
   const renderedPrompt = useMemo(() => {
@@ -155,8 +154,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-[#0a0a0a] text-gray-100 overflow-hidden">
-      {/* 左側面板: 3D 預覽視窗 */}
-      <div className="relative flex-1 bg-white overflow-hidden border-b lg:border-b-0 lg:border-r border-gray-800 flex items-center justify-center">
+      {/* 左側面板: 3D 預覽視窗 - Mobile: 45vh, Desktop: Flex-1 */}
+      <div className="relative w-full h-[45vh] lg:h-auto lg:flex-1 bg-white overflow-hidden border-b lg:border-b-0 lg:border-r border-gray-800 flex items-center justify-center">
 
         <div className="absolute inset-0 z-0">
           <Canvas
@@ -203,8 +202,8 @@ const App: React.FC = () => {
         {/* 16:9 攝影機參考框 */}
         <div
           ref={viewfinderRef}
-          className="relative border-[1.5px] border-black/20 pointer-events-none z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] flex items-center justify-center transition-all duration-500"
-          style={{ height: viewfinderHeight, width: viewfinderWidth }}
+          className="relative pointer-events-none z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] flex items-center justify-center transition-all duration-500
+                     w-[94%] aspect-video lg:w-auto lg:h-[85vh] lg:aspect-video"
         >
           <div className="absolute top-0 left-0 border-t-2 border-l-2 border-white/95 w-16 h-16"></div>
           <div className="absolute top-0 right-0 border-t-2 border-r-2 border-white/95 w-16 h-16"></div>
@@ -214,7 +213,7 @@ const App: React.FC = () => {
           <div className="absolute h-12 w-[1px] bg-white/40"></div>
         </div>
 
-        <div className="absolute top-12 right-12 z-20 flex flex-col items-end gap-6 h-full pointer-events-none">
+        <div className="absolute top-4 right-4 lg:top-12 lg:right-12 z-20 flex flex-col items-end gap-4 lg:gap-6 h-full pointer-events-none scale-75 origin-top-right lg:scale-100">
           <div className="flex items-center gap-4 pointer-events-auto">
             <button
               onClick={() => setIsSettingsOpen(true)}
@@ -266,7 +265,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="absolute top-12 left-12 flex flex-col gap-3 pointer-events-none z-20">
+        <div className="absolute top-4 left-4 lg:top-12 lg:left-12 flex flex-col gap-2 lg:gap-3 pointer-events-none z-20 scale-75 origin-top-left lg:scale-100">
           <div className="bg-black/95 backdrop-blur-xl px-5 py-2.5 rounded-2xl border border-gray-800 text-[10px] font-black tracking-widest flex items-center justify-between min-w-[180px] shadow-2xl">
             <span className="text-gray-500">AZIMUTH</span>
             <span className="text-white font-mono text-sm">{state.metadata.azimuth}°</span>
@@ -281,7 +280,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="absolute bottom-16 inset-x-0 flex justify-center pointer-events-none z-20">
+        <div className="absolute bottom-6 lg:bottom-16 inset-x-0 flex justify-center pointer-events-none z-20 scale-75 origin-bottom lg:scale-100">
           <div className="bg-black/95 backdrop-blur-3xl px-16 py-5 rounded-full border border-gray-800 flex items-center gap-12 shadow-[0_30px_70px_rgba(0,0,0,0.6)]">
             <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.5em]">Optical Profile</span>
             <div className="flex gap-12 text-sm font-black tracking-[0.3em] uppercase">
@@ -292,7 +291,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="absolute bottom-4 w-full z-20 flex justify-center pointer-events-auto">
+        <div className="absolute bottom-1 w-full z-20 flex justify-center pointer-events-auto lg:bottom-4">
           <a
             href="https://weisfx0705.github.io/chiawei/"
             target="_blank"
@@ -304,8 +303,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 右側面板: 控制系統 */}
-      <div className="w-full lg:w-[500px] flex flex-col bg-[#0d0d0d] border-l border-gray-800 shadow-2xl z-30 overflow-y-auto scrollbar-hide">
+      {/* 右側面板: 控制系統 - Mobile: Remaining Height (55vh), Desktop: Fixed Width */}
+      <div className="w-full h-[55vh] lg:h-auto lg:w-[500px] flex flex-col bg-[#0d0d0d] border-l border-gray-800 shadow-2xl z-30 overflow-y-auto scrollbar-hide">
         <div className="p-8 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-[#0d0d0d]/95 backdrop-blur-xl z-40">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-2xl border shadow-inner transition-colors ${state.promptMode === 'video' ? 'bg-blue-600/10 border-blue-500/20' : 'bg-orange-600/10 border-orange-500/20'}`}>
