@@ -2,71 +2,85 @@
 
 ![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
 
-這是一個基於 Web 的 3D 互動工具，專為影視創作者與 AI 藝術家設計。透過直觀的 3D 介面模擬真實攝影機運鏡與構圖，自動生成精確的 AI 提示詞（Prompt），支援影片（Video）與圖像（Image）生成模式。
+這是一個基於 Web 的 **3D 互動式電影攝影教學與提示詞編譯工具**。
 
-由 **義守大學電影與電視學系陳嘉暐老師** 設計 (2026)。
+本專案專為影視創作者與 AI 藝術家設計，透過直觀的 3D 介面模擬真實攝影機運鏡與構圖，並引入獨特的 **「雙階段生成工作流」**，能將用戶的運鏡設計轉化為專業的攝影教學解析，進而編譯成適用於 Runway, Midjourney, Sora 等模型的高精度 AI 提示詞 (Image-to-Image Optimized)。
+
+**由 義守大學電影與電視學系 陳嘉暐老師 設計 (2026)**
 [https://weisfx0705.github.io/chiawei/](https://weisfx0705.github.io/chiawei/)
 
 ---
 
-## ✨ 核心功能 (Features)
+## 🌟 核心理念 (Core Philosophy)
 
-### 1. 3D 互動視角預覽 (3D Interactive Viewfinder)
-- **實時渲染**：使用 React Three Fiber 構建的 3D 場景，包含角色、燈光與環境。
-- **攝影機控制**：
-  - **方位角 (Azimuth)**：360 度環繞運鏡控制。
-  - **仰俯角 (Elevation)**：從蟲瞻到鳥瞰的全角度調整。
-  - **距離 (Distance)**：模擬不同焦段與物距的構圖變化。
-- **角色姿態**：切換 Standing (站立)、Walking (行走)、Running (奔跑) 等姿態。
+本工具建立在一個核心指導原則之上：**「圖片是骨架，故事是靈魂」**。
 
-### 2. 電影術語自動對應 (Automated Cinematography Mapping)
-系統會根據 3D 攝影機的位置，自動計算並轉換為專業電影術語：
-- **拍攝方向 (Shot Direction)**：正面、側面、背面等。
-- **拍攝角度 (Shot Angle)**：平視、高角度、低角度等。
-- **景別 (Shot Size)**：從大特寫 (ECU) 到大遠景 (ELS)。
-
-### 3. 鏡頭語言選擇器 (Camera Language Selector)
-提供完整的鏡頭運動語彙庫，支援多選與組合：
-- **標準鏡頭**：POV, OTS, Dutch Angle, Handheld 等。
-- **運鏡控制**：Pan, Tilt, Zoom, Whip Pan 等。
-- **複雜運鏡**：Dolly, Crane, Tracking, Orbit, Drone Shot 等。
-
-### 4. AI 提示詞編譯器 (Prompt Compiler)
-- **雙模式支援**：
-  - **Video Mode**：針對影片生成模型優化
-  - **Image Mode**：針對圖像生成模型優化
-- **Google Gemini 整合**：透過 Gemini API 將視覺參數、風格描述與敘事內容整合為結構化的 Master Prompt。
-- **風格與敘事**：支援輸入具體的場景描述與視覺風格
-
-### 5. 實用工具
-- **截圖視角**：一鍵下載當前構圖的參考圖
-- **Pose Overlay**：可選擇將骨架圖疊加於提示詞或是僅作為視覺參考
+1.  **視覺骨架 (The Bones)**：由 3D 視窗截圖決定。這張參考圖 (Reference Image) 負責定義嚴格的 **構圖 (Composition)** 與 **角色位置 (Placement)**。
+2.  **敘事靈魂 (The Soul)**：由用戶輸入的 Story Intent 決定。故事內容擁有 **表演的最高指導權**，決定角色的動作 (Sitting, Running, Crawling)、情緒與表演細節，完全覆蓋 3D 模型原本僵硬的姿態。
 
 ---
 
-## 🛠 技術堆疊 (Tech Stack)
+## ✨ 主要功能 (Features)
 
-- **Frontend Framework**: [React](https://react.dev/) + [Vite](https://vitejs.dev/)
-- **3D Engine**: [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
-- **UI Styling**: [TailwindCSS](https://tailwindcss.com/)
-- **AI Integration**: [Google Gemini API](https://ai.google.dev/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Markdown Rendering**: [Marked](https://github.com/markedjs/marked)
+### 1. 3D 互動視角與光學模擬
+- **精確光軸控制**：透過 Azimuth (方位角)、Elevation (俯仰角)、Distance (物距) 參數，精確模擬攝影機位置。
+- **Gizmo 輔助系統**：將操作軸心鎖定於角色軀幹 (Torso)，保留角色落地感的同時提供符合直覺的操作體驗。
+- **實時視窗預覽**：所見即所得 (WYSIWYG) 的 16:9 構圖視窗，直接作為生成模型的視覺參考錨點。
+
+### 2. 雙階段生成工作流 (Two-Step Workflow)
+本系統採用獨創的兩階段生成邏輯：
+
+*   **階段一：攝影設計教學解析 (Educational Cinematography Brief)**
+    *   **功能**：生成一份繁體中文的詳細教學文件。
+    *   **內容**：分析當前的鏡頭語言、判定面部朝向 (Face Orientation)、視線落點 (Gaze Direction)，並整合用戶的敘事意圖。
+    *   **教育意義**：如同專業攝影指導 (DoP) 為您拆解鏡頭設計。
+
+*   **階段二：最終 AI 提示詞編譯 (Final Prompt Compilation)**
+    *   **功能**：將教學解析轉譯為高保真英文提示詞。
+    *   **優化**：專為 **Image-to-Image (墊圖)** 工作流優化。強制模型參考圖片的幾何構圖，但從文字中提取表演與細節。
+
+### 3. 智慧鏡頭語言庫
+- **多樣化運鏡**：內建 26+ 種專業運鏡術語（Dolly, Truck, Pan, Tilt, Rack Focus, Dutch Angle 等）。
+- **智慧過濾**：根據選擇的模式 (Video/Image) 自動顯示或隱藏適用的運鏡選項。
+- **視覺化預覽**：滑鼠懸停時即時顯示該運鏡的參考示意圖。
+
+### 4. 嚴謹的邏輯判定系統
+- **Face Orientation Rule**: 嚴格依據 Azimuth 數值判定臉部朝向，避免 AI 誤判低模 (Low-poly) 模型的陰影。
+- **Visual Priority**: 在仰俯角判斷上，優先依據「視覺感受」而非純數據，確保生成的描述符合人類視覺經驗。
 
 ---
 
-## 📝 使用指南 (Usage Guide)
+## 🛠 技術架構 (Tech Stack)
 
-1. **調整構圖**：在右側面板調整 Azimuth, Elevation, Distance 滑桿，觀察左側 3D 視窗的變化。
-2. **選擇模式**：在右上角切換 "Video" 或 "Image" 模式。
-3. **設定動作**：選擇角色姿態 (Pose) 與鏡頭運動 (Camera Language)。
-4. **輸入敘事**：在 "Story Intent" 區域輸入場景描述與風格關鍵字。
-5. **產生提示詞**：點擊底部的 "Compile" 按鈕，等待 AI 生成專業提示詞。
-6. **複製使用**：複製生成的 Prompt 到您喜歡的 AI 生成工具中使用。
+本專案採用現代化前端技術構建，並針對本地單檔部署進行優化：
+
+- **Core**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Build Tool**: [Vite](https://vitejs.dev/) + `vite-plugin-singlefile` (編譯為單一 HTML 檔案，方便攜帶與離線使用)
+- **3D Engine**: [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) + [Drei](https://github.com/pmndrs/drei)
+- **AI Integration**: [Google Gemini API](https://ai.google.dev/) (SDK: `@google/genai`)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **UI Icons**: [Lucide React](https://lucide.dev/)
+
+---
+
+## 📝 使用指南 (User Guide)
+
+1.  **構圖設計 (Composition)**：在 3D 視窗中移動攝影機，尋找最佳視角。
+    *   *Tip*: 拖曳滑桿調整 Azimuth/Elevation/Distance。
+2.  **敘事輸入 (Story Intent)**：
+    *   **Story**: 描述角色的 **動作** (例如：坐在長椅上哭泣)、情緒與環境氛圍。**這是表演的唯一依據**。
+    *   **Style**: 輸入風格關鍵字 (例如：Cyberpunk, Noir, Wes Anderson)。
+3.  **鏡頭選擇 (Selection)**：勾選適合的鏡頭運動 (Camera Motion)。
+4.  **生成解析 (Generate Analysis)**：點擊按鈕，獲得詳細的中文攝影分析。您可以編輯這份分析以微調細節。
+5.  **編譯提示詞 (Compile Prompt)**：將解析轉譯為最終英文提示詞。
+6.  **生成影像/影片**：
+    *   複製提示詞。
+    *   下載 3D 預覽截圖 (`截圖視角`)。
+    *   將兩者同時輸入至 Runway, Midjourney 或其他 AI 生成工具 (Image Prompt + Text Prompt)。
 
 ---
 
 ## 📄 License
 
-Project designed by Chia-Wei Chen, Department of Film and Television, I-Shou University.
+Project designed by **Chia-Wei Chen**, Department of Film and Television, I-Shou University.
 2026 All Rights Reserved.
