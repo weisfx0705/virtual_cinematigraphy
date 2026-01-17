@@ -57,33 +57,8 @@ const App: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [hoveredMotion, setHoveredMotion] = useState<string | null>(null);
+  // Image loading and hover state logic removed for performance
 
-  // Load all camera images from src/cameras
-  const cameraImages = useMemo(() => {
-    return import.meta.glob('./cameras/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
-  }, []);
-
-  const getMotionImageUrl = (motion: string) => {
-    // Normalize motion name to match filename: "Tilt Up" -> "tilt_up"
-    const normalized = motion.toLowerCase()
-      .replace(/ \+ /g, '_') // "Push In + Reveal" -> "Push In_Reveal" (handle spaces around + first)
-      .replace(/ /g, '_')    // "Tilt Up" -> "tilt_up"
-      .replace(/[^a-z0-9_]/g, ''); // Remove other chars
-
-    // Look for exact match in keys
-    const key = Object.keys(cameraImages).find(k => k.endsWith(`/${normalized}.webp`));
-    return key ? cameraImages[key] : null;
-  };
-
-  const handleMotionEnter = (e: React.MouseEvent, motion: string) => {
-    setHoveredMotion(motion);
-    // Tooltip logic removed/replaced by Preview
-  };
-
-  const handleMotionLeave = () => {
-    setHoveredMotion(null);
-  };
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewfinderRef = useRef<HTMLDivElement>(null);
@@ -276,19 +251,7 @@ const App: React.FC = () => {
             <Environment preset="studio" />
           </Canvas>
 
-          {/* Camera Motion Preview Overlay */}
-          {hoveredMotion && getMotionImageUrl(hoveredMotion) && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 animate-in fade-in duration-200 pointer-events-none">
-              <img
-                src={getMotionImageUrl(hoveredMotion) || ''}
-                alt={hoveredMotion}
-                className="max-w-full max-h-full object-contain shadow-2xl"
-              />
-              <div className="absolute bottom-10 px-6 py-2 bg-black/80 border border-white/20 rounded-full text-white font-black text-sm uppercase tracking-widest backdrop-blur-md">
-                {hoveredMotion} Preview
-              </div>
-            </div>
-          )}
+          {/* Camera Motion Preview Overlay Removed */}
         </div>
 
         {/* 16:9 攝影機參考框 */}
@@ -436,16 +399,23 @@ const App: React.FC = () => {
                       {group.motions.map((motion) => {
                         const active = state.selectedMotions.includes(motion);
                         return (
-                          <button
-                            key={motion}
-                            onClick={() => handleMotionToggle(motion)}
-                            onMouseEnter={(e) => handleMotionEnter(e, motion)}
-                            onMouseLeave={handleMotionLeave}
-                            className={`px-4 py-3 text-[10px] rounded-xl border transition-all text-left flex items-center justify-between font-bold uppercase tracking-tight shadow-sm ${active ? 'border-purple-500 bg-purple-500/10 text-purple-300 shadow-inner' : 'border-gray-800 bg-gray-900/30 text-gray-500 hover:border-gray-700 hover:text-gray-300'}`}
-                          >
-                            <span>{motion}</span>
-                            {active && <Check size={12} className="text-purple-500" />}
-                          </button>
+                          <div key={motion} className="relative group">
+                            <button
+                              onClick={() => handleMotionToggle(motion)}
+                              className={`w-full px-4 py-3 text-[10px] rounded-xl border transition-all text-left flex items-center justify-between font-bold uppercase tracking-tight shadow-sm ${active ? 'border-purple-500 bg-purple-500/10 text-purple-300 shadow-inner' : 'border-gray-800 bg-gray-900/30 text-gray-500 hover:border-gray-700 hover:text-gray-300'}`}
+                            >
+                              <span>{motion}</span>
+                              {active && <Check size={12} className="text-purple-500" />}
+                            </button>
+                            {/* Floating Tooltip */}
+                            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 px-3 py-2 bg-[#1a1a1a] border border-gray-700/50 rounded-lg shadow-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm">
+                              <p className="text-[10px] text-gray-300 leading-relaxed font-normal tracking-wide">
+                                {MOTION_DESCRIPTIONS[motion] || 'No description available'}
+                              </p>
+                              {/* Arrow */}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-4 border-transparent border-t-gray-700/50"></div>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
