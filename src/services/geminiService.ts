@@ -45,21 +45,24 @@ export async function generateEducationalBrief(state: PromptState, apiKey?: stri
        - 解析用戶選擇的運鏡術語（如 ${state.selectedMotions.join(', ') || '固定鏡頭'}）。
        - 解釋這些運鏡如何影響敘事氛圍。
 
-    2. **光軸與視角 (Optical Axis)**
-       - 分析方位角 (Azimuth: ${az}°, ${sideDescription})、仰角 (${state.metadata.elevation}°) 和距離 (${state.metadata.distance}m)。
-       - 說明這種幾何配置帶來的心理效果（例如：俯視帶來的弱勢感、側面帶來的疏離感等）。
-       - 對應的鏡頭術語：${state.terms.size}, ${state.terms.angle}, ${state.terms.direction}。
+    2. **光軸與視角 (Optical Axis) - KEY SECTION**
+       - **面部與角度**: 必須明確指出看見的是「左臉」還是「右臉」，是「正面」還是「背面」。(Azimuth: ${az}°, 目前定義為: ${sideDescription})。
+       - **構圖與留白**: 描述主體在畫面中的位置（如：位於右側三分線，向左看），以及留白區域（Negative Space）的大小與位置。
+       - **鏡頭情感幾何 (Elevation + Distance)**: 
+         - 必須將「仰角/俯角 (${state.metadata.elevation}°)」與「距離 (${state.metadata.distance}m)」結合解釋。
+         - 例如：「低角度 (${state.metadata.elevation}°) 搭配 近距離 (${state.metadata.distance}m)」創造的壓迫感或威嚴感；或是「鳥瞰 (${state.metadata.elevation}°) 搭配 遠景 (${state.metadata.distance}m)」帶來的上帝視角或渺小感。
+         - 對應術語：${state.terms.size}, ${state.terms.angle}, ${state.terms.direction}。
 
     3. **角色與場景 (Character & Scene)**
        - 整合用戶的故事描述："${state.description}"。
        - 整合角色姿態：${state.characterPose}。
-       - 描述場景中的光影、氛圍與美術細節，這些細節是由你（LLM）根據上文想像並補充的。
+       - 描述場景中的光影、氛圍與美術細節，這些細節是由你根據上文想像並補充的。
 
     4. **補充細節與建議 (Details & Suggestions)**
        - 提供關於風格 (${state.style}) 的具體執行建議。
        - 建議的燈光佈局或其他技術參數。
 
-    Tone: 專業、啟發性、教學引導。
+    Tone: 專業、啟發性、教學引導，對光軸的描述要極度精確畫面感。
   `;
 
   const userPrompt = `
@@ -78,7 +81,7 @@ export async function generateEducationalBrief(state: PromptState, apiKey?: stri
       contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0.7, // Higher temp for creative educational content
+        temperature: 0.7,
       },
     });
 
@@ -106,17 +109,22 @@ export async function generateFinalPromptFromBrief(brief: string, mode: 'video' 
 
     Target Tool: ${mode === 'video' ? 'Video Generation (Runway Gen-2 / Pika / Sora)' : 'Image Generation (Midjourney v6 / Flux)'}.
 
+    CRITICAL REQUIREMENTS for OPTICAL AXIS:
+    1. **Face/Body Angle**: You MUST explicitly state if we see the LEFT or RIGHT side of the face/body, or Front/Back (e.g. "Side profile showing left cheek", "3/4 view from behind").
+    2. **Composition**: Describe placement in frame (e.g. "Subject placed on right third", "Centered composition") and negative space.
+    3. **Perspective Emotion**: Combine Angle + Distance into the description (e.g. "Intimate low-angle close-up", "Detached high-angle extreme long shot").
+
     Rules:
     1. **ENGLISH ONLY**: The output must be 100% English.
     2. **Structure**: 
-       - Start with **Subject + Composition**.
+       - Start with **Subject + Angle/Composition** (Include the specific Optical Axis details here!).
        - Follow with **Action & Environment**.
        - Add **Cinematography Keywords** (Lighting, Lens, Stock).
        - (If Video) End with **Camera Movement**.
     3. **Tone**: Evocative, precise, photorealistic, cinematic.
     4. **No Fluff**: Remove educational explanations; keep only the visual descriptions.
     
-    Input Brief Context: The user has provided a structured analysis of their desired shot. Use the details described in "Character & Scene" and "Optical Axis" to build the prompt.
+    Input Brief Context: The user has provided a structured analysis of their desired shot. heavily prioritize the "Optical Axis" section for the camera description.
   `;
 
   const userPrompt = `
@@ -134,7 +142,7 @@ export async function generateFinalPromptFromBrief(brief: string, mode: 'video' 
       contents: userPrompt,
       config: {
         systemInstruction: systemInstruction,
-        temperature: 0.3, // Lower temp for precise translation/compilation
+        temperature: 0.3,
       },
     });
 
