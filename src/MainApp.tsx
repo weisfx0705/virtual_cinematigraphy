@@ -9,6 +9,7 @@ import {
 import { marked } from 'marked';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { Subject, Gizmos, CameraController } from './components/SceneComponents';
+import { TransformControls } from '@react-three/drei';
 import { CameraMetadata, PromptState, CameraMotion } from './types';
 import { mapMetadataToTerms } from './utils/cinematography';
 import { generateEducationalBrief, generateFinalPromptFromBrief } from './services/geminiService';
@@ -123,8 +124,42 @@ const App: React.FC = () => {
     setIsGenerating(true);
     setEducationalBrief(''); // Reset
     setState(prev => ({ ...prev, finalPrompt: '' })); // Reset final
+
+    // Capture screenshot
+    let imageBase64: string | undefined;
+    if (canvasRef.current && viewfinderRef.current) {
+      try {
+        const canvas = canvasRef.current;
+        const rect = viewfinderRef.current.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
+        // Calculate relative position of viewfinder on canvas
+        const scaleX = canvas.width / canvasRect.width;
+        const scaleY = canvas.height / canvasRect.height;
+        const x = (rect.left - canvasRect.left) * scaleX;
+        const y = (rect.top - canvasRect.top) * scaleY;
+        const width = rect.width * scaleX;
+        const height = rect.height * scaleY; // Use viewfinder height reference
+
+        // Use the actual canvas height or specific aspect ratio crop?
+        // The viewfinder is just a visual guide overlay.
+        // We'll crop the canvas to the viewfinder area if possible, or just send the whole canvas if simpler.
+        // Let's crop to viewfinder to be precise about what aligns with "16:9".
+
+        const offscreen = document.createElement('canvas');
+        offscreen.width = width;
+        offscreen.height = height;
+        const ctx = offscreen.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(canvas, x, y, width, height, 0, 0, width, height);
+          imageBase64 = offscreen.toDataURL('image/png');
+        }
+      } catch (e) {
+        console.error("Screenshot capture failed:", e);
+      }
+    }
+
     try {
-      const brief = await generateEducationalBrief(state, apiKey);
+      const brief = await generateEducationalBrief(state, apiKey, imageBase64);
       setEducationalBrief(brief);
     } catch (e) {
       console.error(e);
@@ -212,7 +247,11 @@ const App: React.FC = () => {
             />
             <ambientLight intensity={1.2} />
             <spotLight position={[5, 15, 5]} intensity={2} castShadow />
-            <Subject rotationY={0} pose={state.characterPose} />
+            <TransformControls mode="translate" translationSnap={0.1} position={[0, 1.2, 0]}>
+              <group position={[0, -1.2, 0]}>
+                <Subject rotationY={0} pose={state.characterPose} />
+              </group>
+            </TransformControls>
             <Gizmos
               azimuth={state.metadata.azimuth}
               elevation={state.metadata.elevation}
@@ -267,44 +306,7 @@ const App: React.FC = () => {
         </div>
 
 
-        {/* Pose Control - Bottom Left */}
-        <div
-          className="absolute bottom-6 left-4 lg:bottom-12 lg:left-12 z-20 flex flex-col gap-4 pointer-events-none scale-75 origin-bottom-left lg:scale-100"
-          style={{ bottom: '10rem', left: '1rem' }}
-        >
-          <div className="bg-black/90 backdrop-blur-xl p-4 rounded-3xl border border-gray-800 shadow-[0_20px_40px_rgba(0,0,0,0.5)] w-[200px] space-y-3 animate-in slide-in-from-left-10 duration-700 pointer-events-auto">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-1 bg-teal-500 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.8)]"></div>
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pose</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="includePoseOverlay"
-                  checked={state.includePoseInPrompt}
-                  onChange={(e) => setState(prev => ({ ...prev, includePoseInPrompt: e.target.checked }))}
-                  className="w-3 h-3 rounded bg-gray-700 border-gray-600 text-teal-500 focus:ring-teal-500 cursor-pointer"
-                />
-                <label htmlFor="includePoseOverlay" className="text-[9px] font-bold text-gray-500 uppercase cursor-pointer hover:text-gray-300">寫入指令</label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {(['Standing', 'Walking', 'Running'] as const).map((pose) => (
-                <button
-                  key={pose}
-                  onClick={() => setState(prev => ({ ...prev, characterPose: pose }))}
-                  onMouseEnter={(e) => handleMotionEnter(e, pose)}
-                  onMouseLeave={handleMotionLeave}
-                  className={`px-2 py-2 text-[9px] rounded-lg border transition-all font-bold uppercase tracking-wider text-center ${state.characterPose === pose ? 'bg-teal-500/20 border-teal-500/50 text-teal-300 shadow-[0_0_15px_rgba(20,184,166,0.2)]' : 'bg-gray-800/50 border-gray-700/50 text-gray-500 hover:bg-gray-800 hover:text-gray-300'}`}
-                >
-                  {pose}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Pose Window Removed */}
 
         <div className="absolute top-4 right-4 lg:top-12 lg:right-12 z-20 flex flex-col items-end gap-4 lg:gap-6 h-full pointer-events-none scale-75 origin-top-right lg:scale-100">
           <div className="flex items-center gap-4 pointer-events-auto">
@@ -342,16 +344,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="absolute bottom-6 lg:bottom-16 inset-x-0 flex justify-center pointer-events-none z-20 scale-75 origin-bottom lg:scale-100">
-          <div className="bg-black/95 backdrop-blur-3xl px-16 py-5 rounded-full border border-gray-800 flex items-center gap-12 shadow-[0_30px_70px_rgba(0,0,0,0.6)]">
-            <span className="text-[11px] font-black text-gray-500 uppercase tracking-[0.5em]">Optical Profile</span>
-            <div className="flex gap-12 text-sm font-black tracking-[0.3em] uppercase">
-              <span className="text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{state.terms.direction}</span>
-              <span className="text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]">{state.terms.angle}</span>
-              <span className="text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">{state.terms.size}</span>
-            </div>
-          </div>
-        </div>
+
 
         <div className="absolute bottom-1 w-full z-20 flex justify-center pointer-events-auto lg:bottom-4">
           <a

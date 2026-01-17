@@ -8,16 +8,18 @@ function getSideDescription(azimuth: number): string {
   if (az === 0 || az === 360) {
     return "正對鏡頭 (Frontal view)";
   } else if (az > 0 && az < 180) {
-    if (az === 90) return "完全左側面 (Full Left Profile)";
-    if (az < 90) return `前左側 (Front-Left / 3/4 Left View, ${az}°)`;
-    return `後左側 (Back-Left View, ${az}°)`;
+    // Camera is on the Left (-X), seeing the Subject's RIGHT side.
+    if (az === 90) return "完全右側面 (Full Right Profile)";
+    if (az < 90) return `前右側 (Front-Right / Showing Right Cheek, ${az}°)`;
+    return `後右側 (Back-Right View / Showing Right Ear, ${az}°)`;
   } else if (az === 180) {
     return "完全背面 (Full Back view)";
   } else {
     // 181~359
-    if (az === 270) return "完全右側面 (Full Right Profile)";
-    if (az < 270) return `後右側 (Back-Right View, ${az}°)`;
-    return `前右側 (Front-Right / 3/4 Right View, ${az}°)`;
+    // Camera is on the Right (+X), seeing the Subject's LEFT side.
+    if (az === 270) return "完全左側面 (Full Left Profile)";
+    if (az < 270) return `後左側 (Back-Left View / Showing Left Ear, ${az}°)`;
+    return `前左側 (Front-Left / Showing Left Cheek, ${az}°)`;
   }
 }
 
@@ -25,7 +27,7 @@ function getSideDescription(azimuth: number): string {
  * Step 1: Generate an Educational Cinematography Brief in Traditional Chinese.
  * This explains the user's choices and adds LLM-generated details.
  */
-export async function generateEducationalBrief(state: PromptState, apiKey?: string): Promise<string> {
+export async function generateEducationalBrief(state: PromptState, apiKey?: string, imageBase64?: string): Promise<string> {
   const finalApiKey = apiKey || process.env.API_KEY;
   if (!finalApiKey) {
     return "錯誤: 未設定 API Key。請在設定中輸入您的 Google Gemini API Key。";
@@ -37,48 +39,90 @@ export async function generateEducationalBrief(state: PromptState, apiKey?: stri
 
   const systemInstruction = `
     Role: 你是專業的電影攝影師導師。
-    Task: 分析用戶的攝影配置，撰寫一份詳細的「攝影設計教學解析」 (Educational Cinematography Brief)。
+    Task: 分析用戶的攝影配置與「實時預覽截圖」，撰寫一份詳細的「攝影設計教學解析」 (Educational Cinematography Brief)。
     Output Language: 繁體中文 (Traditional Chinese).
+
+    CRITICAL INSTRUCTION:
+    1. **Visual Priority**: 你會收到一張預覽截圖。**這張圖是最高準則**。
+    2. 如果截圖中的「角色位置」、「拍攝角度」、「留白空間」與文字數據有出入，**請完全依據截圖為準**。
+    3. 你的任務是精確描述那張截圖看起來像是什麼（包含透視變形、實際感受到的視角）。
 
     Structure:
     1. **鏡頭語言 (Camera Language)**
        - 解析用戶選擇的運鏡術語（如 ${state.selectedMotions.join(', ') || '固定鏡頭'}）。
-       - 解釋這些運鏡如何影響敘事氛圍。
 
-    2. **光軸與視角 (Optical Axis) - KEY SECTION**
-       - **面部與角度**: 必須明確指出看見的是「左臉」還是「右臉」，是「正面」還是「背面」。(Azimuth: ${az}°, 目前定義為: ${sideDescription})。
-       - **構圖與留白**: 描述主體在畫面中的位置（如：位於右側三分線，向左看），以及留白區域（Negative Space）的大小與位置。
-       - **鏡頭情感幾何 (Elevation + Distance)**: 
-         - 必須將「仰角/俯角 (${state.metadata.elevation}°)」與「距離 (${state.metadata.distance}m)」結合解釋。
-         - 例如：「低角度 (${state.metadata.elevation}°) 搭配 近距離 (${state.metadata.distance}m)」創造的壓迫感或威嚴感；或是「鳥瞰 (${state.metadata.elevation}°) 搭配 遠景 (${state.metadata.distance}m)」帶來的上帝視角或渺小感。
-         - 對應術語：${state.terms.size}, ${state.terms.angle}, ${state.terms.direction}。
+    2. **光軸與視角 (Optical Axis) - MUST BE BASED ON IMAGE**
+       - **面部與視線朝向 (Face & Gaze Direction)**: **極度重要**。判定「臉部的正面」是指向畫框的哪個方向？
+         **絕對判定標準 (Rule of Truth)**: 請直接根據提供的 Azimuth 數值判定，**忽略你對截圖的視覺猜測**（因為低模光影容易誤導）。
+         *   **Azimuth 0 (or 360)**: 正對觀眾/鏡頭 (Front)。
+         *   **Azimuth 1 ~ 89**: 朝向畫面左側與左前方 (Looking Left/Front-Left)，露出左臉。
+         *   **Azimuth 90**: 正左側臉 (Full Left Profile)。
+         *   **Azimuth 91 ~ 179**: 朝向畫面左側與左後方 (Looking Left/Back-Left)，背影較多。
+         *   **Azimuth 180**: 背對觀眾 (Back View)。
+         *   **Azimuth 181 ~ 269**: 朝向畫面右側與右後方 (Looking Right/Back-Right)，背影較多。
+         *   **Azimuth 270**: 正右側臉 (Full Right Profile)。
+         *   **Azimuth 271 ~ 359**: 朝向畫面右側與右前方 (Looking Right/Front-Right)，露出右臉。
+         **垂直朝向規則 (Vertical Orientation Rule)**:
+         *   **Elevation -80 ~ -1**: 這是仰視鏡頭 (Low Angle)，因此角色的臉部/身體趨向於指向**畫框上方 (Upper Frame)**。
+         *   **Elevation 1 ~ 80**: 這是俯視鏡頭 (High Angle)，因此角色的臉部/身體趨向於指向**畫框下方 (Lower Frame)**。
+         *   **例外**: 當 **Azimuth = 90 或 270** (完全側面) 時，忽略上述垂直規則，視為水平指向左右。
+         請綜合 Azimuth (左右) 與 Elevation (上下) 做出最終判定（例如：『臉部朝向左上方』或『臉部朝向右下方』）。
+         請先看數據，再用這個結論去描述截圖。
+       - **實際視角 (Visual Perspective)**: 雖然數據顯示仰角 ${state.metadata.elevation}°，但請根據截圖描述實際的視覺感受。
+         **視覺判斷技巧 (Visual Check)**:
+         1. **俯視判斷 (High Angle)**: 如果你能看到角色頭頂的「頂部圓弧」或「肩膀的上平面」，這就是俯視（High Angle/God's Eye View），即使數據顯示是水平。
+         2. **仰視判斷 (Low Angle)**: 如果你能看到下巴底面或身體顯得巨大高聳，這就是仰視。
+         **請務必修正數據偏差**：如果畫面看起來是俯視，請直接寫「視覺上呈現明顯俯視視角」。
+       - **景別與鏡頭感 (Shot Size & Lens)**: 這非常重要。根據畫面中人物佔比判斷是：
+         *   **Extreme Close Up (ECU/大特寫)**: 僅看到眼睛或局部。
+         *   **Close Up (CU/特寫)**: 頭部到肩膀。
+         *   **Medium Close Up (MCU/胸上景)**: 胸部以上。
+         *   **Medium Shot (MS/中景)**: 腰部以上。
+         *   **American Shot (Cowboy/七分身)**: 大腿以上。
+         *   **Full Shot (FS/全身)**: 腳底到頭頂完整。
+         *   **Wide Shot (WS/全景)** or **Extreme Wide Shot (EWS/大全景)**: 人物渺小，強調環境。
+         請明確寫出對應的英文術語。
+       - **構圖 (Composition)**: 描述角色在 16:9 框內的準確位置（如：左下角、偏右、置中），以及留白的空間感。
 
     3. **角色與場景 (Character & Scene)**
        - 整合用戶的故事描述："${state.description}"。
-       - 整合角色姿態：${state.characterPose}。
-       - 描述場景中的光影、氛圍與美術細節，這些細節是由你根據上文想像並補充的。
+       - 描述場景中的光影、氛圍與美術細節。
 
     4. **補充細節與建議 (Details & Suggestions)**
        - 提供關於風格 (${state.style}) 的具體執行建議。
-       - 建議的燈光佈局或其他技術參數。
 
-    Tone: 專業、啟發性、教學引導，對光軸的描述要極度精確畫面感。
+    Tone: 專業、啟發性、教學引導，對光軸與眼神的描述要極度精確畫面感。
   `;
 
   const userPrompt = `
-    請根據以下數據生成攝影解析：
+    請根據這張預覽截圖與以下數據生成攝影解析：
+    - **CRITICAL DATA**: Azimuth = ${az} (請務必使用此數值判定臉部朝向)
     - Optical Data: Az: ${az}, El: ${state.metadata.elevation}, Dist: ${state.metadata.distance}
     - Story: ${state.description || "N/A"}
     - Style: ${state.style || "N/A"}
-    - Pose: ${state.includePoseInPrompt ? state.characterPose : "N/A"}
     - Motions: ${state.selectedMotions.join(', ')}
     - Mode: ${state.promptMode}
+
+    **再次強調：請以圖片中的視覺呈現為最優先描述依據。**
   `;
 
   try {
+    const contents: any[] = [userPrompt];
+
+    if (imageBase64) {
+      // Clean base64 string if it contains the header
+      const cleanBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+      contents.push({
+        inlineData: {
+          mimeType: "image/png",
+          data: cleanBase64
+        }
+      });
+    }
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash-exp',
-      contents: userPrompt,
+      contents: contents,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
@@ -105,26 +149,39 @@ export async function generateFinalPromptFromBrief(brief: string, mode: 'video' 
 
   const systemInstruction = `
     Role: Expert AI Prompt Engineer (Midjourney/Runway/Sora Specialist).
-    Task: Translate and condense the provided "Cinematography Brief" (which is in Chinese) into a high-quality, streamlined ENGLISH prompt.
+    Task: Translate the "Cinematography Brief" into a **perfect, high-fidelity ENGLISH PROMPT** designed to work alongside a **REFERENCE IMAGE (I2I)**.
 
+    Input Context: The user will provide the generated prompt AND the original screenshot to the generation model.
     Target Tool: ${mode === 'video' ? 'Video Generation (Runway Gen-2 / Pika / Sora)' : 'Image Generation (Midjourney v6 / Flux)'}.
 
-    CRITICAL REQUIREMENTS for OPTICAL AXIS:
-    1. **Face/Body Angle**: You MUST explicitly state if we see the LEFT or RIGHT side of the face/body, or Front/Back (e.g. "Side profile showing left cheek", "3/4 view from behind").
-    2. **Composition**: Describe placement in frame (e.g. "Subject placed on right third", "Centered composition") and negative space.
-    3. **Perspective Emotion**: Combine Angle + Distance into the description (e.g. "Intimate low-angle close-up", "Detached high-angle extreme long shot").
+    CRITICAL STRATEGY for REFERENCE IMAGE WORKFLOW:
+    1. **Visual Anchor & User Guide**: This prompt is designed for a user who will upload the screenshot ("Image Prompt"). You must explicitly instruct the downstream model on *how* to read that image. 
+    2. **Explicit Relative Orientation**: Do not just say "looking left". Say: "Reference the image for exact spatial composition: Subject is positioned on the [Left/Right/Center], with head/body oriented as shown (Azimuth). Match this framing geometry exactly."
+    3. **Start with Instruction**: The output MUST start with the exact phrase: "**Reference the provided image for the composition and character placement.**" followed by the description.
+    4. **No Length Limits**: Do not summarize. Be exhaustively descriptive about details that might differ from standard training data.
+    5. **Hypnotic Detail**: Use "dense description" style. Instead of "man sitting", use "a man sitting in the bottom-left corner, body angled 45 degrees away, sharp side profile showing right eye looking up towards the top-right light source".
 
-    Rules:
-    1. **ENGLISH ONLY**: The output must be 100% English.
-    2. **Structure**: 
-       - Start with **Subject + Angle/Composition** (Include the specific Optical Axis details here!).
-       - Follow with **Action & Environment**.
-       - Add **Cinematography Keywords** (Lighting, Lens, Stock).
-       - (If Video) End with **Camera Movement**.
-    3. **Tone**: Evocative, precise, photorealistic, cinematic.
-    4. **No Fluff**: Remove educational explanations; keep only the visual descriptions.
-    
-    Input Brief Context: The user has provided a structured analysis of their desired shot. heavily prioritize the "Optical Axis" section for the camera description.
+    MANDATORY "OPTICAL AXIS" TRANSLATION:
+    1. **Shot Size (CRITICAL)**: You MUST include the specific cinematographic shot size term defined in the brief (e.g., "Extreme Close-Up", "Medium Shot", "Wide Shot"). This is non-negotiable.
+    2. **Eye & Face Direction (CRITICAL)**: You MUST explicitly translate the gaze direction found in the brief. (e.g. "Eyes staring directly into the lens", "Gaze fixed on an off-screen point to the far left", "Head turned away, no eye contact").
+    3. **Camera Geometry**: Describe the "Geometric Feeling" of the shot. (e.g. "Oppressive low-angle looking up from ground level", "Distant voyeuristic high-angle").
+    4. **Frame Geography**: "Subject occupying the left third", "Vast empty negative space on the right".
+
+    MANDATORY "STORY & AESTHETICS" INJECTION:
+    The "Story Intent" from the brief is the **Director's Script** and the **Sole Authority for Performance**.
+    1. **Define Action & Pose**: The Story Intent determines whether the character is Sitting, Standing, Running, or Crawling. **Ignore the stiff mannequin pose in the reference image if the story contradicts it.** Use the image only for *where* they are, not *what* they are doing.
+    2. **Amplify Character Details**: If the story says "A weary soldier", describe dirty armor, sweat, scars, and a thousand-yard stare.
+    3. **Define Performance**: Describe the specific emotion and acting. (e.g. "Screaming in terror", "subtle smirk").
+    4. **Enforce Style**: If a style is mentioned (e.g. "Noir", "Wes Anderson"), apply its specific color grading and set design keywords deeply into the prompt.
+    **Note**: The reference image provides the *bones* (composition), but the Story provides the *flesh, soul, and action*.
+
+    Structure for Final Output:
+    [Subject Action & Exact Pose & Gaze] + [Precise Frame Composition & Camera Angle] + [Lighting & Atmosphere] + [Lens & Film Esthetics] + [Motion (if Video)]
+
+    Rule:
+    - 100% English.
+    - Prioritize **GAZE DIRECTION** and **GEOMETRY**. 
+    - Output must be robust enough to serve as the ground truth even if the reference image influence is weak.
   `;
 
   const userPrompt = `
