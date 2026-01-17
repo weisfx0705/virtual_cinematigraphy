@@ -61,7 +61,7 @@ const App: React.FC = () => {
 
   // Load all camera images from src/cameras
   const cameraImages = useMemo(() => {
-    return import.meta.glob('./cameras/*.jpeg', { eager: true, import: 'default' }) as Record<string, string>;
+    return import.meta.glob('./cameras/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
   }, []);
 
   const getMotionImageUrl = (motion: string) => {
@@ -72,7 +72,7 @@ const App: React.FC = () => {
       .replace(/[^a-z0-9_]/g, ''); // Remove other chars
 
     // Look for exact match in keys
-    const key = Object.keys(cameraImages).find(k => k.endsWith(`/${normalized}.jpeg`));
+    const key = Object.keys(cameraImages).find(k => k.endsWith(`/${normalized}.webp`));
     return key ? cameraImages[key] : null;
   };
 
