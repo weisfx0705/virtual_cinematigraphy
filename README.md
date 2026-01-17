@@ -50,18 +50,7 @@
 
 ---
 
-## 🛠 技術架構 (Tech Stack)
 
-本專案採用現代化前端技術構建，並針對本地單檔部署進行優化：
-
-- **Core**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Build Tool**: [Vite](https://vitejs.dev/) + `vite-plugin-singlefile` (編譯為單一 HTML 檔案，方便攜帶與離線使用)
-- **3D Engine**: [Three.js](https://threejs.org/) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) + [Drei](https://github.com/pmndrs/drei)
-- **AI Integration**: [Google Gemini API](https://ai.google.dev/) (SDK: `@google/genai`)
-- **Styling**: [TailwindCSS](https://tailwindcss.com/)
-- **UI Icons**: [Lucide React](https://lucide.dev/)
-
----
 
 ## 📝 使用指南 (User Guide)
 
