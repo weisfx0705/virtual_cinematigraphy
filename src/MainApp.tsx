@@ -4,7 +4,8 @@ import { Canvas } from '@react-three/fiber';
 import { Grid, Environment, ContactShadows } from '@react-three/drei';
 import {
   Copy, RefreshCw, Film, Camera as CameraIcon,
-  Download, Settings, Check, Video, Image as ImageIcon
+  Download, Settings, Check, Video, Image as ImageIcon,
+  Eye, Edit2
 } from 'lucide-react';
 import { marked } from 'marked';
 import { ApiKeyModal } from './components/ApiKeyModal';
@@ -52,7 +53,7 @@ const App: React.FC = () => {
   });
 
   const [educationalBrief, setEducationalBrief] = useState('');
-  const [isBriefEditable, setIsBriefEditable] = useState(true);
+  const [isBriefEditing, setIsBriefEditing] = useState(false);
 
   const [apiKey, setApiKey] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -384,7 +385,7 @@ const App: React.FC = () => {
           <section className="space-y-8">
             <div className="flex items-center gap-3">
               <div className="h-5 w-1 bg-purple-500 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.8)]"></div>
-              <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Camera Language (26)</h2>
+              <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Camera Language</h2>
             </div>
 
             <div className="space-y-8">
@@ -468,14 +469,31 @@ const App: React.FC = () => {
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-5 duration-700">
                 <div className="flex items-center justify-between px-2">
                   <h3 className="text-[10px] font-black text-teal-500 uppercase tracking-widest">Cinematography Design Brief</h3>
-                  <span className="text-[10px] text-gray-600">Editable Markdown</span>
+                  <button
+                    onClick={() => setIsBriefEditing(!isBriefEditing)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/50 hover:bg-gray-800 border border-gray-700 hover:border-gray-600 transition-all group/btn"
+                  >
+                    {isBriefEditing ? <Eye size={12} className="text-gray-400 group-hover/btn:text-teal-400" /> : <Edit2 size={12} className="text-gray-400 group-hover/btn:text-teal-400" />}
+                    <span className="text-[10px] font-bold text-gray-400 group-hover/btn:text-gray-200 uppercase tracking-wider">
+                      {isBriefEditing ? 'Preview' : 'Edit'}
+                    </span>
+                  </button>
                 </div>
                 <div className="relative group">
-                  <textarea
-                    value={educationalBrief}
-                    onChange={(e) => setEducationalBrief(e.target.value)}
-                    className="w-full h-[400px] bg-[#0f0f0f] border border-teal-900/30 rounded-[1.5rem] p-6 text-sm text-gray-300 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition-all resize-y shadow-inner"
-                  />
+                  {isBriefEditing ? (
+                    <textarea
+                      value={educationalBrief}
+                      onChange={(e) => setEducationalBrief(e.target.value)}
+                      className="w-full h-[400px] bg-[#0f0f0f] border border-teal-900/30 rounded-[1.5rem] p-6 text-sm text-gray-300 font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition-all resize-y shadow-inner"
+                    />
+                  ) : (
+                    <div className="w-full h-[400px] bg-[#0f0f0f] border border-teal-900/30 rounded-[1.5rem] p-6 overflow-y-auto shadow-inner">
+                      <div
+                        className="prose-custom text-sm leading-relaxed text-gray-300"
+                        dangerouslySetInnerHTML={{ __html: marked.parse(educationalBrief) as string }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Step 2: Compile Final Prompt */}

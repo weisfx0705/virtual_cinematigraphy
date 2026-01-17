@@ -157,7 +157,7 @@ export async function generateFinalPromptFromBrief(brief: string, mode: 'video' 
     CRITICAL STRATEGY for REFERENCE IMAGE WORKFLOW:
     1. **Visual Anchor & User Guide**: This prompt is designed for a user who will upload the screenshot ("Image Prompt"). You must explicitly instruct the downstream model on *how* to read that image. 
     2. **Explicit Relative Orientation**: Do not just say "looking left". Say: "Reference the image for exact spatial composition: Subject is positioned on the [Left/Right/Center], with head/body oriented as shown (Azimuth). Match this framing geometry exactly."
-    3. **Start with Instruction**: The output MUST start with the exact phrase: "**Reference the provided image for the composition and character placement.**" followed by the description.
+    3. **Start with Instruction**: The output MUST start with the exact phrase: "**Reference the provided image for character placement only. The figure in the first provided image is a fake mannequin; the two black squares represent the eyes and also indicate the facing direction. Please follow the mannequin’s on-screen position and orientation.**" followed by the description.
     4. **No Length Limits**: Do not summarize. Be exhaustively descriptive about details that might differ from standard training data.
     5. **Hypnotic Detail**: Use "dense description" style. Instead of "man sitting", use "a man sitting in the bottom-left corner, body angled 45 degrees away, sharp side profile showing right eye looking up towards the top-right light source".
 
@@ -179,6 +179,7 @@ export async function generateFinalPromptFromBrief(brief: string, mode: 'video' 
     [Subject Action & Exact Pose & Gaze] + [Precise Frame Composition & Camera Angle] + [Lighting & Atmosphere] + [Lens & Film Esthetics] + [Motion (if Video)]
 
     Rule:
+    - **Output Format**: Markdown. Use bolding for key terms (e.g. **Extreme Close-Up**, **Low Angle**).
     - 100% English.
     - Prioritize **GAZE DIRECTION** and **GEOMETRY**. 
     - Output must be robust enough to serve as the ground truth even if the reference image influence is weak.
