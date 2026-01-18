@@ -62,17 +62,28 @@ export async function generateEducationalBrief(state: PromptState, apiKey?: stri
          *   **Azimuth 181 ~ 269**: 朝向畫面右側與右後方 (Looking Right/Back-Right)，背影較多。
          *   **Azimuth 270**: 正右側臉 (Full Right Profile)。
          *   **Azimuth 271 ~ 359**: 朝向畫面右側與右前方 (Looking Right/Front-Right)，露出右臉。
-         **垂直朝向規則 (Vertical Orientation Rule)**:
-         *   **Elevation -80 ~ -1**: 這是仰視鏡頭 (Low Angle)，因此角色的臉部/身體趨向於指向**畫框上方 (Upper Frame)**。
-         *   **Elevation 1 ~ 80**: 這是俯視鏡頭 (High Angle)，因此角色的臉部/身體趨向於指向**畫框下方 (Lower Frame)**。
-         *   **例外**: 當 **Azimuth = 90 或 270** (完全側面) 時，忽略上述垂直規則，視為水平指向左右。
-         請綜合 Azimuth (左右) 與 Elevation (上下) 做出最終判定（例如：『臉部朝向左上方』或『臉部朝向右下方』）。
-         請先看數據，再用這個結論去描述截圖。
-       - **實際視角 (Visual Perspective)**: 雖然數據顯示仰角 ${state.metadata.elevation}°，但請根據截圖描述實際的視覺感受。
+         **垂直朝向規則 (Vertical Orientation Rule) - Two-Layer Logic**:
+         **Rule of Truth for Elevation**: 數值正負號決定一切，請忽略你的直覺。
+         *   **正數 Elevation (+1 ~ +80)**: 攝影機在上方，絕對是 **俯角 (High Angle)**。
+         *   **負數 Elevation (-1 ~ -80)**: 攝影機在下方，絕對是 **仰角 (Low Angle)**。
+         *   **Elevation 0**: 平視 (Eye Level)。
+
+         **第一層定義 (Layer 1: Numerical Definition)**: 根據上述數值直接定性。
+         *   **Elevation > 0**: 定為 **俯角 (High Angle)**。
+         *   **Elevation < 0**: 定為 **仰角 (Low Angle)**。
+
+         **第二層確認 (Layer 2: Visual Intensity Check)**: 根據截圖判斷強弱程度。
+         *   **對於 Low Angle (負數)**: 若截圖顯示極端透視（如看到鞋底、巨大的下巴底面），則進一步定義為 **蟲視 (Worm's Eye View)**；否則保持 **仰角 (Low Angle)**。
+         *   **對於 High Angle (正數)**: 若截圖顯示極端透視（如幾何化的頭頂、極度垂直），則進一步定義為 **鳥瞰 (Bird's Eye / God's Eye View)**；否則保持 **俯角 (High Angle)**。
+         
+         只有在 **Azimuth = 90 或 270** (完全側面) 時，才暫時忽略上述垂直規則，視為水平指向左右。
+         
+         **結論**: 請先依據數值確定是大類的「仰」或「俯」，再看圖確認是「普通」還是「極端」。
+       - **實際視角 (Visual Perspective)**: 承上，描述你從截圖中看到的實際視覺感受。
          **視覺判斷技巧 (Visual Check)**:
-         1. **俯視判斷 (High Angle)**: 如果你能看到角色頭頂的「頂部圓弧」或「肩膀的上平面」，這就是俯視（High Angle/God's Eye View），即使數據顯示是水平。
-         2. **仰視判斷 (Low Angle)**: 如果你能看到下巴底面或身體顯得巨大高聳，這就是仰視。
-         **請務必修正數據偏差**：如果畫面看起來是俯視，請直接寫「視覺上呈現明顯俯視視角」。
+         1. **俯視細節**: 檢查頭頂圓弧、肩膀上平面。
+         2. **仰視細節**: 檢查下巴底面、高聳的身體結構。
+         **請務必修正數據偏差**: 如果數據是 -5 (微仰角) 但截圖看起來幾乎平視，請在描述中如實反映「數據為仰角但視覺接近平視」。
        - **景別與鏡頭感 (Shot Size & Lens)**: 這非常重要。根據畫面中人物佔比判斷是：
          *   **Extreme Close Up (ECU/大特寫)**: 僅看到眼睛或局部。
          *   **Close Up (CU/特寫)**: 頭部到肩膀。
