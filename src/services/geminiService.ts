@@ -34,94 +34,87 @@ export async function generateEducationalBrief(state: PromptState, apiKey?: stri
   }
 
   const ai = new GoogleGenAI({ apiKey: finalApiKey });
+  // Ensure Az for display is clean
   const az = state.metadata.azimuth % 360;
-  const sideDescription = getSideDescription(az);
 
   const systemInstruction = `
     Role: 你是專業的電影攝影師導師。
     Task: 分析用戶的攝影配置與「實時預覽截圖」，撰寫一份詳細的「攝影設計教學解析」 (Educational Cinematography Brief)。
     Output Language: 繁體中文 (Traditional Chinese).
 
-    CRITICAL INSTRUCTION:
-    1. **Visual Priority**: 你會收到一張預覽截圖。**這張圖是最高準則**。
-    2. 如果截圖中的「角色位置」、「拍攝角度」、「留白空間」與文字數據有出入，**請完全依據截圖為準**。
-    3. 你的任務是精確描述那張截圖看起來像是什麼（包含透視變形、實際感受到的視角）。
+    **CRITICAL TRUTH HIERARCHY (絕對判定權重階層)**:
+    請嚴格遵守以下判定來源，不可混淆：
 
-    Structure:
+    1. **【必須依賴數值 (METADATA PRIORITY)】**：
+       - **仰角/俯角 (High/Low Angle)**: 必須 **100% 依據 Elevation 數值**。
+       - **面部朝向 (Face Orientation)**: 必須 **100% 依據 Azimuth 數值**。
+       - **禁止**因為截圖的光影模糊、模型簡陋或透視不明顯而推翻數值。**數值就是真理**。
+
+    2. **【必須依賴視覺 (VISUAL PRIORITY)】**：
+       - **景別 (Shot Size)**: 如特寫、中景、全景。必須 **100% 依據截圖中人物在畫面的佔比**。請忽略 Metadata 中的 Distance 數值，因為不同焦段會影響構圖，**只看圖**。
+       - **構圖 (Composition)**: 人物在畫面的位置、留白空間。**只看圖**。
+
+    ---
+
+    **Analysis Structure & Rules**:
+
     1. **鏡頭語言 (Camera Language)**
        - 解析用戶選擇的運鏡術語（如 ${state.selectedMotions.join(', ') || '固定鏡頭'}）。
 
-    2. **光軸與視角 (Optical Axis) - MUST BE BASED ON IMAGE**
-       - **面部與視線朝向 (Face & Gaze Direction)**: **極度重要**。判定「臉部的正面」是指向畫框的哪個方向？
-         **絕對判定標準 (Rule of Truth)**: 請直接根據提供的 Azimuth 數值判定，**忽略你對截圖的視覺猜測**（因為低模光影容易誤導）。
-         *   **Azimuth 0 (or 360)**: 正對觀眾/鏡頭 (Front)。
-         *   **Azimuth 1 ~ 89**: 朝向畫面左側與左前方 (Looking Left/Front-Left)，露出左臉。
-         *   **Azimuth 90**: 正左側臉 (Full Left Profile)。
-         *   **Azimuth 91 ~ 179**: 朝向畫面左側與左後方 (Looking Left/Back-Left)，背影較多。
-         *   **Azimuth 180**: 背對觀眾 (Back View)。
-         *   **Azimuth 181 ~ 269**: 朝向畫面右側與右後方 (Looking Right/Back-Right)，背影較多。
-         *   **Azimuth 270**: 正右側臉 (Full Right Profile)。
-         *   **Azimuth 271 ~ 359**: 朝向畫面右側與右前方 (Looking Right/Front-Right)，露出右臉。
-         **垂直朝向規則 (Vertical Orientation Rule) - Two-Layer Logic**:
-         **Rule of Truth for Elevation**: 數值正負號決定一切，請忽略你的直覺。
-         *   **正數 Elevation (+1 ~ +80)**: 攝影機在上方，絕對是 **俯角 (High Angle)**。
-         *   **負數 Elevation (-1 ~ -80)**: 攝影機在下方，絕對是 **仰角 (Low Angle)**。
-         *   **Elevation 0**: 平視 (Eye Level)。
+    2. **光軸與視角 (Optical Axis)**
 
-         **第一層定義 (Layer 1: Numerical Definition)**: 根據上述數值直接定性。
-         *   **Elevation > 0**: 定為 **俯角 (High Angle)**。
-         *   **Elevation < 0**: 定為 **仰角 (Low Angle)**。
+       **(A) 垂直視角 (Vertical Angle) - [依據數值 Elevation]**:
+       *   **Elevation > 0 (+1 ~ +80)**: 定義為 **俯角 (High Angle)**。
+       *   **Elevation < 0 (-1 ~ -80)**: 定義為 **仰角 (Low Angle)**。
+       *   **Elevation = 0**: 定義為 **平視 (Eye Level)**。
+       *   *進階判斷*: 若數值絕對值很大 (如 >60 或 <-60) 且畫面透視強烈，可加註 "鳥瞰 (Overhead/God's Eye)" 或 "蟲視 (Worm's Eye)"，但**基礎屬性必須跟隨數值正負號**。
 
-         **第二層確認 (Layer 2: Visual Intensity Check)**: 根據截圖判斷強弱程度。
-         *   **對於 Low Angle (負數)**: 若截圖顯示極端透視（如看到鞋底、巨大的下巴底面），則進一步定義為 **蟲視 (Worm's Eye View)**；否則保持 **仰角 (Low Angle)**。
-         *   **對於 High Angle (正數)**: 若截圖顯示極端透視（如幾何化的頭頂、極度垂直），則進一步定義為 **鳥瞰 (Bird's Eye / God's Eye View)**；否則保持 **俯角 (High Angle)**。
-         
-         只有在 **Azimuth = 90 或 270** (完全側面) 時，才暫時忽略上述垂直規則，視為水平指向左右。
-         
-         **結論**: 請先依據數值確定是大類的「仰」或「俯」，再看圖確認是「普通」還是「極端」。
-       - **實際視角 (Visual Perspective)**: 承上，描述你從截圖中看到的實際視覺感受。
-         **視覺判斷技巧 (Visual Check)**:
-         1. **俯視細節**: 檢查頭頂圓弧、肩膀上平面。
-         2. **仰視細節**: 檢查下巴底面、高聳的身體結構。
-         **請務必修正數據偏差**: 如果數據是 -5 (微仰角) 但截圖看起來幾乎平視，請在描述中如實反映「數據為仰角但視覺接近平視」。
-       - **景別與鏡頭感 (Shot Size & Lens)**: 這非常重要。根據畫面中人物佔比判斷是：
-         *   **Extreme Close Up (ECU/大特寫)**: 僅看到眼睛或局部。
-         *   **Close Up (CU/特寫)**: 頭部到肩膀。
-         *   **Medium Close Up (MCU/胸上景)**: 胸部以上。
-         *   **Medium Shot (MS/中景)**: 腰部以上。
-         *   **American Shot (Cowboy/七分身)**: 大腿以上。
-         *   **Full Shot (FS/全身)**: 腳底到頭頂完整。
-         *   **Wide Shot (WS/全景)** or **Extreme Wide Shot (EWS/大全景)**: 人物渺小，強調環境。
-         請明確寫出對應的英文術語。
-       - **構圖 (Composition)**: 描述角色在 16:9 框內的準確位置（如：左下角、偏右、置中），以及留白的空間感。
+       **(B) 水平朝向 (Horizontal Orientation) - [依據數值 Azimuth]**:
+       請根據 Azimuth (${az}°) 判斷：
+       *   **355 ~ 5 (Cross 0)**: 正面 (Front View)。
+       *   **5 ~ 85**: 露出左臉 (Front-Left / Looking Screen Left)。
+       *   **85 ~ 95**: 正左側 (Full Left Profile)。
+       *   **95 ~ 175**: 左後側 (Back-Left)。
+       *   **175 ~ 185**: 背面 (Back View)。
+       *   **185 ~ 265**: 右後側 (Back-Right)。
+       *   **265 ~ 275**: 正右側 (Full Right Profile)。
+       *   **275 ~ 355**: 露出右臉 (Front-Right / Looking Screen Right)。
+
+       **(C) 景別與鏡頭感 (Shot Size & Lens) - [依據截圖 Visuals]**:
+       請忽略 Distance 數據，**只看截圖畫面**判定：
+       *   **Extreme Close Up (ECU)**: 只有眼睛/嘴巴/局部。
+       *   **Close Up (CU)**: 頭部充滿畫面，頂多到肩膀。
+       *   **Medium Close Up (MCU)**: 胸部以上。
+       *   **Medium Shot (MS)**: 腰部以上。
+       *   **Cowboy Shot (American)**: 大腿/膝蓋以上。
+       *   **Full Shot (FS)**: 全身完整 (頭頂到腳底)。
+       *   **Wide Shot (WS)**: 人物變小，環境變多。
+       *   **Extreme Wide Shot (EWS)**: 人物極小，強調大環境。
+       *   **描述**: 目前人物在畫面中的具體位置（左/中/右）與留白感。
 
     3. **角色與場景 (Character & Scene)**
-       - 整合用戶的故事描述："${state.description}"。
-       - 描述場景中的光影、氛圍與美術細節。
+       - 整合故事描述："${state.description}"。
+       - 描述場景氛圍。
 
-    4. **補充細節與建議 (Details & Suggestions)**
-       - 提供關於風格 (${state.style}) 的具體執行建議。
+    4. **補充細節 (Details)**
+       - 如果使用了風格 "${state.style}"，提供相應建議。
 
-    Tone: 專業、啟發性、教學引導，對光軸與眼神的描述要極度精確畫面感。
+    Tone: 權威、精準。
+    Output Format: 條列式重點解析。
   `;
 
   const userPrompt = `
-    請根據這張預覽截圖與以下數據生成攝影解析：
-    - **CRITICAL DATA**: Azimuth = ${az} (請務必使用此數值判定臉部朝向)
-    - Optical Data: Az: ${az}, El: ${state.metadata.elevation}, Dist: ${state.metadata.distance}
-    - Story: ${state.description || "N/A"}
-    - Style: ${state.style || "N/A"}
-    - Motions: ${state.selectedMotions.join(', ')}
-    - Mode: ${state.promptMode}
-
-    **再次強調：請以圖片中的視覺呈現為最優先描述依據。**
+    請撰寫攝影解析：
+    - **METADATA (Truth for Angle/Orientation)**: Azimuth=${az}°, Elevation=${state.metadata.elevation}°
+    - **IMAGE (Truth for Shot Size)**: 請看附圖。
+    - User Story: ${state.description || "無"}
+    - Style: ${state.style || "無"}
   `;
 
   try {
     const contents: any[] = [userPrompt];
 
     if (imageBase64) {
-      // Clean base64 string if it contains the header
       const cleanBase64 = imageBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
       contents.push({
         inlineData: {

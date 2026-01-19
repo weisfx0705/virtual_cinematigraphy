@@ -1,7 +1,7 @@
 
-export type ShotDirection = '正面' | '四分之三側面' | '側面' | '後側側面' | '背面';
-export type ShotAngle = '鳥瞰' | '高角度' | '平視' | '低角度' | '蟲瞻';
-export type ShotSize = '大特寫 (ECU)' | '特寫 (CU)' | '胸上景 (MCU)' | '半身景 (MS)' | '中景 (MLS)' | '全景 (FS)' | '大全景 (WS)' | '遠景 (LS)' | '大遠景 (ELS)';
+export type ShotDirection = string;
+export type ShotAngle = string;
+export type ShotSize = string;
 
 export interface CameraMetadata {
   azimuth: number; // 0 to 360
